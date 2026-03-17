@@ -1,0 +1,256 @@
+<?xml version="1.0"?>
+<robot name="chassis" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find chassis_description)/urdf/materials.xacro" />
+  <xacro:include filename="$(find chassis_description)/urdf/macros.xacro" />
+
+  <!-- ================= 图纸参数（单位：m） ================= -->
+
+  <!-- 顶板外形：600 x 550 -->
+  <xacro:property name="deck_length" value="0.60" />
+  <xacro:property name="deck_width" value="0.55" />
+
+  <!-- 顶板厚度：先按 15 mm -->
+  <xacro:property name="deck_thickness" value="0.015" />
+
+  <!-- 总高：313.3 mm -->
+  <xacro:property name="total_height" value="0.3133" />
+
+  <!-- 底部腹板离地：213.3 mm -->
+  <xacro:property name="belly_ground_clearance" value="0.2133" />
+
+  <!-- 轮子：φ240 -->
+  <xacro:property name="wheel_radius" value="0.12" />
+  <xacro:property name="wheel_width" value="0.055" />
+
+  <!-- 车身质量（先给一个仿真初值） -->
+  <xacro:property name="base_mass" value="22.0" />
+
+  <!--
+    base_link 定义在顶板中心
+    顶板上表面离地 total_height
+    所以顶板中心离地 = total_height - deck_thickness/2
+  -->
+  <xacro:property name="base_z" value="${total_height - deck_thickness/2.0}" />
+
+  <!--
+    转向模块安装面取在顶板下表面
+    从安装面到轮心的距离：
+    = (顶板下表面离地高度) - wheel_radius
+    = (total_height - deck_thickness) - wheel_radius
+  -->
+  <xacro:property name="wheel_center_drop" value="${(total_height - deck_thickness) - wheel_radius}" />
+
+  <!-- 顶板下方腹板/箱体，做一个近似 -->
+  <xacro:property name="belly_height"
+    value="${(total_height - belly_ground_clearance) - deck_thickness}" />
+  <xacro:property name="belly_length" value="0.34" />
+  <xacro:property name="belly_width" value="0.22" />
+
+  <!--
+    四个轮组中心位置
+    这里按图看是内缩安装，不贴到最外沿
+    可后续再按 STEP 微调
+  -->
+  <xacro:property name="wheel_x" value="0.215" />
+  <xacro:property name="wheel_y" value="0.205" />
+
+  <!-- 转向模块外观尺寸 -->
+  <xacro:property name="steer_hub_radius" value="0.038" />
+  <xacro:property name="steer_hub_height" value="0.020" />
+  <xacro:property name="arm_length" value="${wheel_center_drop - 0.02}" />
+  <xacro:property name="arm_thickness" value="0.025" />
+
+  <!-- 转向范围：0~180° -->
+  <xacro:property name="steer_lower" value="-1.57079632679" />
+  <xacro:property name="steer_upper" value="1.57079632679" />
+
+  <!-- 关节参数 -->
+  <xacro:property name="steer_effort" value="60.0" />
+  <xacro:property name="steer_velocity" value="2.0" />
+  <xacro:property name="wheel_effort" value="30.0" />
+  <xacro:property name="wheel_velocity" value="30.0" />
+
+  <!-- ================= base ================= -->
+
+  <link name="base_link">
+
+    <!-- 顶板 -->
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <box size="${deck_length} ${deck_width} ${deck_thickness}" />
+      </geometry>
+      <material name="blue" />
+    </visual>
+
+    <!-- 中间腹板/箱体（近似） -->
+    <visual>
+      <origin xyz="0 0 -${deck_thickness/2.0 + belly_height/2.0}" rpy="0 0 0" />
+      <geometry>
+        <box size="${belly_length} ${belly_width} ${belly_height}" />
+      </geometry>
+      <material name="light_gray" />
+    </visual>
+
+    <!-- 简化碰撞 -->
+    <collision>
+      <origin xyz="0 0 -${deck_thickness/2.0 + belly_height/2.0}" rpy="0 0 0" />
+      <geometry>
+        <box size="${deck_length} ${deck_width} ${deck_thickness + belly_height}" />
+      </geometry>
+    </collision>
+
+    <xacro:box_inertia
+      mass="${base_mass}"
+      x="${deck_length}"
+      y="${deck_width}"
+      z="${deck_thickness + belly_height}" />
+  </link>
+
+  <!-- 地面投影坐标系 -->
+  <link name="base_footprint" />
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint" />
+    <child link="base_link" />
+    <origin xyz="0 0 ${base_z}" rpy="0 0 0" />
+  </joint>
+
+  <!-- ================= 四个轮组 ================= -->
+  <!-- 安装在顶板下表面，所以 z = -deck_thickness/2 -->
+
+  <!-- front-left -->
+  <xacro:swerve_wheel_module
+    prefix="fl"
+    parent="base_link"
+    xyz="${ wheel_x} ${ wheel_y} ${-deck_thickness/2.0}"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_center_drop="${wheel_center_drop}"
+    steer_hub_radius="${steer_hub_radius}"
+    steer_hub_height="${steer_hub_height}"
+    arm_length="${arm_length}"
+    arm_thickness="${arm_thickness}"
+    steer_limit_lower="${steer_lower}"
+    steer_limit_upper="${steer_upper}"
+    steer_effort="${steer_effort}"
+    steer_velocity="${steer_velocity}"
+    wheel_effort="${wheel_effort}"
+    wheel_velocity="${wheel_velocity}" />
+
+  <!-- front-right -->
+  <xacro:swerve_wheel_module
+    prefix="fr"
+    parent="base_link"
+    xyz="${ wheel_x} ${-wheel_y} ${-deck_thickness/2.0}"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_center_drop="${wheel_center_drop}"
+    steer_hub_radius="${steer_hub_radius}"
+    steer_hub_height="${steer_hub_height}"
+    arm_length="${arm_length}"
+    arm_thickness="${arm_thickness}"
+    steer_limit_lower="${steer_lower}"
+    steer_limit_upper="${steer_upper}"
+    steer_effort="${steer_effort}"
+    steer_velocity="${steer_velocity}"
+    wheel_effort="${wheel_effort}"
+    wheel_velocity="${wheel_velocity}" />
+
+  <!-- rear-left -->
+  <xacro:swerve_wheel_module
+    prefix="rl"
+    parent="base_link"
+    xyz="${-wheel_x} ${ wheel_y} ${-deck_thickness/2.0}"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_center_drop="${wheel_center_drop}"
+    steer_hub_radius="${steer_hub_radius}"
+    steer_hub_height="${steer_hub_height}"
+    arm_length="${arm_length}"
+    arm_thickness="${arm_thickness}"
+    steer_limit_lower="${steer_lower}"
+    steer_limit_upper="${steer_upper}"
+    steer_effort="${steer_effort}"
+    steer_velocity="${steer_velocity}"
+    wheel_effort="${wheel_effort}"
+    wheel_velocity="${wheel_velocity}" />
+
+  <!-- rear-right -->
+  <xacro:swerve_wheel_module
+    prefix="rr"
+    parent="base_link"
+    xyz="${-wheel_x} ${-wheel_y} ${-deck_thickness/2.0}"
+    wheel_radius="${wheel_radius}"
+    wheel_width="${wheel_width}"
+    wheel_center_drop="${wheel_center_drop}"
+    steer_hub_radius="${steer_hub_radius}"
+    steer_hub_height="${steer_hub_height}"
+    arm_length="${arm_length}"
+    arm_thickness="${arm_thickness}"
+    steer_limit_lower="${steer_lower}"
+    steer_limit_upper="${steer_upper}"
+    steer_effort="${steer_effort}"
+    steer_velocity="${steer_velocity}"
+    wheel_effort="${wheel_effort}"
+    wheel_velocity="${wheel_velocity}" />
+
+
+  <!-- ================= ros2_control ================= -->
+  <ros2_control name="GazeboSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <joint name="fl_steer_joint">
+      <command_interface name="position" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+    <joint name="fr_steer_joint">
+      <command_interface name="position" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+    <joint name="rl_steer_joint">
+      <command_interface name="position" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+    <joint name="rr_steer_joint">
+      <command_interface name="position" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+
+    <joint name="fl_wheel_joint">
+      <command_interface name="velocity" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+    <joint name="fr_wheel_joint">
+      <command_interface name="velocity" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+    <joint name="rl_wheel_joint">
+      <command_interface name="velocity" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+    <joint name="rr_wheel_joint">
+      <command_interface name="velocity" />
+      <state_interface name="position" />
+      <state_interface name="velocity" />
+    </joint>
+  </ros2_control>
+
+  <!-- ================= Gazebo plugin ================= -->
+  <gazebo>
+    <plugin filename="libgz_ros2_control-system.so"
+      name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(find chassis_description)/config/ros2_controllers.yaml</parameters>
+    </plugin>
+  </gazebo>
+</robot>

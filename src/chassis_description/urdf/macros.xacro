@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ================= 惯量宏 ================= -->
+
+  <xacro:macro name="box_inertia" params="mass x y z">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${mass}"/>
+      <inertia
+        ixx="${mass * (y*y + z*z) / 12.0}"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="${mass * (x*x + z*z) / 12.0}"
+        iyz="0.0"
+        izz="${mass * (x*x + y*y) / 12.0}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="cylinder_inertia" params="mass radius length">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${mass}"/>
+      <inertia
+        ixx="${mass * (3*radius*radius + length*length) / 12.0}"
+        ixy="0.0"
+        ixz="0.0"
+        iyy="${mass * (3*radius*radius + length*length) / 12.0}"
+        iyz="0.0"
+        izz="${0.5 * mass * radius * radius}"/>
+    </inertial>
+  </xacro:macro>
+
+  <!--
+    更贴近你底盘图纸的轮组模块
+    - 转向关节：绕 z 轴
+    - 车轮自转关节：绕 y 轴
+    - wheel_center_drop: 从转向安装面到轮心的垂直距离
+  -->
+  <xacro:macro name="swerve_wheel_module" params="
+      prefix parent xyz
+      wheel_radius wheel_width
+      wheel_center_drop
+      steer_hub_radius steer_hub_height
+      arm_length arm_thickness
+      steer_limit_lower steer_limit_upper
+      steer_effort steer_velocity
+      wheel_effort wheel_velocity">
+
+    <!-- 转向模块总成 -->
+    <link name="${prefix}_steer_link">
+
+      <!-- 上部转盘/安装座 -->
+      <visual>
+        <origin xyz="0 0 -${steer_hub_height/2.0}" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="${steer_hub_radius}" length="${steer_hub_height}"/>
+        </geometry>
+        <material name="dark_gray"/>
+      </visual>
+
+      <!-- 支撑臂（简化成一根斜臂） -->
+      <visual>
+        <origin xyz="0 0 -${wheel_center_drop/2.0}" rpy="0.35 0 0"/>
+        <geometry>
+          <box size="${arm_thickness} ${wheel_width*0.9} ${arm_length}"/>
+        </geometry>
+        <material name="light_gray"/>
+      </visual>
+
+      <!-- 轮轴连接块 -->
+      <visual>
+        <origin xyz="0 0 -${wheel_center_drop}" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.05 ${wheel_width*0.9} 0.04"/>
+        </geometry>
+        <material name="dark_gray"/>
+      </visual>
+
+      <!-- 碰撞体先简化 -->
+      <collision>
+        <origin xyz="0 0 -${wheel_center_drop/2.0}" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.08 ${wheel_width} ${wheel_center_drop}"/>
+        </geometry>
+      </collision>
+
+      <xacro:box_inertia mass="2.5" x="0.08" y="${wheel_width}" z="${wheel_center_drop}"/>
+    </link>
+
+    <!-- 转向关节 -->
+    <joint name="${prefix}_steer_joint" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${prefix}_steer_link"/>
+      <origin xyz="${xyz}" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit
+        lower="${steer_limit_lower}"
+        upper="${steer_limit_upper}"
+        effort="${steer_effort}"
+        velocity="${steer_velocity}"/>
+      <dynamics damping="0.4" friction="0.05"/>
+    </joint>
+
+    <!-- 车轮 -->
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+
+      <xacro:cylinder_inertia mass="3.0" radius="${wheel_radius}" length="${wheel_width}"/>
+    </link>
+
+    <!-- 车轮自转关节 -->
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="${prefix}_steer_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="0 0 -${wheel_center_drop}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit effort="${wheel_effort}" velocity="${wheel_velocity}"/>
+      <dynamics damping="0.1" friction="0.02"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>
