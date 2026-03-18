@@ -6,11 +6,12 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     steering_position_controller:
-      type: forward_command_controller/ForwardCommandController
+      type: position_controllers/JointGroupPositionController
 
     wheel_velocity_controller:
-      type: forward_command_controller/ForwardCommandController
+      type: velocity_controllers/JointGroupVelocityController
 
+# 控制器各自的参数块，必须在顶层
 steering_position_controller:
   ros__parameters:
     joints:
@@ -18,8 +19,7 @@ steering_position_controller:
       - fr_steer_joint
       - rl_steer_joint
       - rr_steer_joint
-    interface_name: position
-
+      
 wheel_velocity_controller:
   ros__parameters:
     joints:
@@ -27,4 +27,3 @@ wheel_velocity_controller:
       - fr_wheel_joint
       - rl_wheel_joint
       - rr_wheel_joint
-    interface_name: velocity
