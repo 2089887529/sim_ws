@@ -120,6 +120,20 @@ def generate_launch_description():
         )
     )
 
+    # 运动解算节点，必须在控制器加载完成后启动，否则会因为没有控制器接口而报错
+    swerve_kinematics_node = Node(
+        package='chassis_controller',
+        executable='swerve_kinematics_node',
+        output='screen'
+    )
+
+    load_kinematics_after_wheel = RegisterEventHandler(
+        OnProcessExit(
+            target_action=wheel_controller_spawner,
+            on_exit=[swerve_kinematics_node]
+        )
+    )
+
     ld = LaunchDescription()
     ld.add_action(gz_sim)
     ld.add_action(robot_state_publisher_node)
@@ -129,5 +143,6 @@ def generate_launch_description():
     ld.add_action(load_jsb_after_spawn)
     ld.add_action(load_steering_after_jsb)
     ld.add_action(load_wheel_after_steering)
+    ld.add_action(load_kinematics_after_wheel)
 
     return ld
