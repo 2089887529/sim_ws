@@ -112,9 +112,16 @@ class SwerveDriveKinematics(Node):
             else:
                 # 归一化
                 target_angle = (target_angle + math.pi) % (2 * math.pi) - math.pi
-                # 截断到限制范围
-                target_angle = max(-self.max_steer,
-                                   min(self.max_steer, target_angle))
+                # 超出限制时尝试翻转
+                if abs(target_angle) > self.max_steer:
+                    flipped = target_angle + (math.pi if target_angle < 0 else -math.pi)
+                    flipped = (flipped + math.pi) % (2 * math.pi) - math.pi
+                    if abs(flipped) <= self.max_steer:
+                        target_angle = flipped
+                        speed = -speed
+                    else:
+                        target_angle = max(-self.max_steer,
+                                        min(self.max_steer, target_angle))
 
             steer_angles.append(target_angle)
             wheel_vels.append(speed / self.wheel_radius)
@@ -125,6 +132,17 @@ class SwerveDriveKinematics(Node):
         if max_vel > self.max_wheel_vel:
             scale = self.max_wheel_vel / max_vel
             wheel_vels = [v * scale for v in wheel_vels]
+
+
+        # ── 调试日志 ──────────────────────────────────────────
+        # self.get_logger().info(
+        #     f'last: {[round(a,3) for a in self.last_angles]} '
+        #     f'steer: {[round(a,3) for a in steer_angles]} '
+        #     f'vel: {[round(v,3) for v in wheel_vels]}'
+        # )
+
+        # ── 发布 ──────────────────────────────────────────────
+        steer_msg = Float64MultiArray()
 
         # ── 发布 ──────────────────────────────────────────────
         steer_msg = Float64MultiArray()
