@@ -25,7 +25,7 @@ def generate_launch_description():
             os.path.join(ros_gz_sim_path, 'launch', 'gz_sim.launch.py')
         ),
         launch_arguments={
-            'gz_args': '-r empty.sdf'
+            'gz_args': '-r ' + os.path.join(pkg_path, 'worlds', 'ruida','ruida.sdf')
         }.items()
     )
 
@@ -59,9 +59,12 @@ def generate_launch_description():
         package='ros_gz_sim',
         executable='create',
         arguments=[
-            '-world', 'empty',
+            '-world', 'ruida_world',
             '-name', 'chassis',
-            '-topic', 'robot_description'
+            '-topic', 'robot_description',
+            '-x', '15.0',
+            '-y', '0.0',
+            '-z', '5.0'
         ],
         output='screen'
     )
@@ -99,7 +102,7 @@ def generate_launch_description():
             target_action=spawn_entity_node,
             on_exit=[
                 TimerAction(
-                    period=2.0,   # 等待 gz_ros2_control 初始化完成
+                    period=15.0,   # 等待 gz_ros2_control 初始化完成
                     actions=[joint_state_broadcaster_spawner]
                 )
             ]

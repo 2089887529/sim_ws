@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+  <world name="ruida_world">
+
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.5 0.5 0.5 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ruida_world">
+      <static>true</static>
+      <pose>0 0 0 1.5708 0 0</pose>
+      <link name="link">
+
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file:///home/robot/sim_ws/install/chassis_description/share/chassis_description/worlds/ruida/ruida.obj</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+        </visual>
+
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>file:///home/robot/sim_ws/install/chassis_description/share/chassis_description/worlds/ruida/ruida.obj</uri>
+              <scale>1 1 1</scale>
+            </mesh>
+          </geometry>
+        </collision>
+
+      </link>
+    </model>
+
+  </world>
+</sdf>
